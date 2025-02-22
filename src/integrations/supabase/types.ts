@@ -17,6 +17,8 @@ export type Database = {
           id: string
           image_url: string | null
           name: string
+          position_x: number | null
+          position_y: number | null
           updated_at: string | null
         }
         Insert: {
@@ -26,6 +28,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           name: string
+          position_x?: number | null
+          position_y?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -35,45 +39,100 @@ export type Database = {
           id?: string
           image_url?: string | null
           name?: string
+          position_x?: number | null
+          position_y?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      family_relationship_members: {
+        Row: {
+          created_at: string | null
+          family_member_id: string
+          id: string
+          relationship_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string | null
+          family_member_id: string
+          id?: string
+          relationship_id: string
+          role: string
+        }
+        Update: {
+          created_at?: string | null
+          family_member_id?: string
+          id?: string
+          relationship_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_relationship_members_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_relationship_members_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "relationships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relationship_types: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
       relationships: {
         Row: {
           created_at: string | null
-          from_member_id: string
           id: string
-          relationship_type: string
-          to_member_id: string
+          position_x: number
+          position_y: number
+          type_id: string
         }
         Insert: {
           created_at?: string | null
-          from_member_id: string
           id?: string
-          relationship_type: string
-          to_member_id: string
+          position_x?: number
+          position_y?: number
+          type_id: string
         }
         Update: {
           created_at?: string | null
-          from_member_id?: string
           id?: string
-          relationship_type?: string
-          to_member_id?: string
+          position_x?: number
+          position_y?: number
+          type_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "relationships_from_member_id_fkey"
-            columns: ["from_member_id"]
+            foreignKeyName: "relationships_type_id_fkey"
+            columns: ["type_id"]
             isOneToOne: false
-            referencedRelation: "family_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "relationships_to_member_id_fkey"
-            columns: ["to_member_id"]
-            isOneToOne: false
-            referencedRelation: "family_members"
+            referencedRelation: "relationship_types"
             referencedColumns: ["id"]
           },
         ]
