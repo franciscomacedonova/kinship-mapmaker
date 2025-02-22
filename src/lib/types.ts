@@ -1,18 +1,46 @@
 
-export interface FamilyMember {
-  id: string;
-  name: string;
-  birth_date?: string;
-  gender?: 'male' | 'female' | 'other';
-  image_url?: string;
+export interface Database {
+  public: {
+    Tables: {
+      family_members: {
+        Row: {
+          id: string;
+          name: string;
+          birth_date: string | null;
+          gender: 'male' | 'female' | 'other' | null;
+          image_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          birth_date?: string | null;
+          gender?: 'male' | 'female' | 'other' | null;
+          image_url?: string | null;
+        };
+      };
+      relationships: {
+        Row: {
+          id: string;
+          from_member_id: string;
+          to_member_id: string;
+          relationship_type: 'parent' | 'spouse' | 'sibling';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          from_member_id: string;
+          to_member_id: string;
+          relationship_type: 'parent' | 'spouse' | 'sibling';
+        };
+      };
+    };
+  };
 }
 
-export interface Relationship {
-  id: string;
-  from_member_id: string;
-  to_member_id: string;
-  relationship_type: 'parent' | 'spouse' | 'sibling';
-}
+export type FamilyMember = Database['public']['Tables']['family_members']['Row'];
+export type Relationship = Database['public']['Tables']['relationships']['Row'];
 
 export interface FamilyNode {
   id: string;

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import FamilyNode from './FamilyNode';
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
-import { FamilyNode as FamilyNodeType, FamilyEdge, Relationship } from '@/lib/types';
+import { FamilyNode as FamilyNodeType, FamilyEdge, Relationship, Database } from '@/lib/types';
 import '@xyflow/react/dist/style.css';
 
 const nodeTypes = {
@@ -46,6 +46,10 @@ const FamilyTreeCanvas = () => {
           .select('*');
 
         if (relationsError) throw relationsError;
+
+        if (!members || !relationships) {
+          throw new Error('Failed to fetch data');
+        }
 
         // Convert members to nodes
         const familyNodes = members.map((member) => ({
@@ -78,6 +82,8 @@ const FamilyTreeCanvas = () => {
 
   const onConnect = useCallback(
     async (params: Connection | Edge) => {
+      if (!params.source || !params.target) return;
+
       try {
         // Save the relationship to Supabase
         const { data, error } = await supabase
@@ -86,13 +92,14 @@ const FamilyTreeCanvas = () => {
             {
               from_member_id: params.source,
               to_member_id: params.target,
-              relationship_type: 'parent', // Default type, you might want to add UI to select type
+              relationship_type: 'parent' as const,
             },
           ])
           .select()
           .single();
 
         if (error) throw error;
+        if (!data) throw new Error('No data returned from insert');
 
         // Update the edges in the UI
         const newEdge = {
@@ -127,6 +134,7 @@ const FamilyTreeCanvas = () => {
         .single();
 
       if (error) throw error;
+      if (!data) throw new Error('No data returned from insert');
 
       // Add new node to the UI
       const newNode: FamilyNodeType = {
