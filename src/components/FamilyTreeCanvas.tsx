@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -10,10 +10,13 @@ import {
   addEdge,
   Connection,
   Edge,
+  BackgroundVariant,
 } from '@xyflow/react';
 import { Button } from "@/components/ui/button";
 import FamilyNode from './FamilyNode';
 import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
+import { FamilyNode as FamilyNodeType, FamilyEdge, Relationship } from '@/lib/types';
 import '@xyflow/react/dist/style.css';
 
 const nodeTypes = {
@@ -26,25 +29,120 @@ const FamilyTreeCanvas = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  // Fetch initial data
+  useEffect(() => {
+    const fetchFamilyData = async () => {
+      try {
+        // Fetch family members
+        const { data: members, error: membersError } = await supabase
+          .from('family_members')
+          .select('*');
+
+        if (membersError) throw membersError;
+
+        // Fetch relationships
+        const { data: relationships, error: relationsError } = await supabase
+          .from('relationships')
+          .select('*');
+
+        if (relationsError) throw relationsError;
+
+        // Convert members to nodes
+        const familyNodes = members.map((member) => ({
+          id: member.id,
+          type: 'family' as const,
+          position: { x: Math.random() * 500, y: Math.random() * 500 },
+          data: member,
+        }));
+
+        // Convert relationships to edges
+        const familyEdges = relationships.map((rel: Relationship) => ({
+          id: rel.id,
+          source: rel.from_member_id,
+          target: rel.to_member_id,
+          data: {
+            relationship_type: rel.relationship_type,
+          },
+        }));
+
+        setNodes(familyNodes);
+        setEdges(familyEdges);
+      } catch (error) {
+        console.error('Error fetching family data:', error);
+        toast.error('Failed to load family tree');
+      }
+    };
+
+    fetchFamilyData();
+  }, []);
+
   const onConnect = useCallback(
-    (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
+    async (params: Connection | Edge) => {
+      try {
+        // Save the relationship to Supabase
+        const { data, error } = await supabase
+          .from('relationships')
+          .insert([
+            {
+              from_member_id: params.source,
+              to_member_id: params.target,
+              relationship_type: 'parent', // Default type, you might want to add UI to select type
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Update the edges in the UI
+        const newEdge = {
+          ...params,
+          id: data.id,
+          data: {
+            relationship_type: data.relationship_type,
+          },
+        };
+        
+        setEdges((eds) => addEdge(newEdge, eds));
+        toast.success('Relationship added');
+      } catch (error) {
+        console.error('Error creating relationship:', error);
+        toast.error('Failed to create relationship');
+      }
+    },
     [setEdges]
   );
 
-  const addFamilyMember = useCallback(() => {
-    const id = `family-${nodes.length + 1}`;
-    const newNode = {
-      id,
-      type: 'family',
-      position: { x: Math.random() * 500, y: Math.random() * 500 },
-      data: {
-        name: 'New Member',
-        birthDate: '',
-      },
-    };
-    setNodes((nodes) => [...nodes, newNode]);
-    toast.success('Family member added');
-  }, [nodes, setNodes]);
+  const addFamilyMember = useCallback(async () => {
+    try {
+      // Create new family member in Supabase
+      const { data, error } = await supabase
+        .from('family_members')
+        .insert([
+          {
+            name: 'New Member',
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add new node to the UI
+      const newNode: FamilyNodeType = {
+        id: data.id,
+        type: 'family',
+        position: { x: Math.random() * 500, y: Math.random() * 500 },
+        data: data,
+      };
+
+      setNodes((nodes) => [...nodes, newNode]);
+      toast.success('Family member added');
+    } catch (error) {
+      console.error('Error adding family member:', error);
+      toast.error('Failed to add family member');
+    }
+  }, [setNodes]);
 
   return (
     <div className="w-full h-screen">
@@ -64,7 +162,7 @@ const FamilyTreeCanvas = () => {
         fitView
         className="bg-slate-50"
       >
-        <Background color="#ccc" variant="cross" />
+        <Background color="#ccc" variant={BackgroundVariant.Lines} />
         <Controls />
         <MiniMap />
       </ReactFlow>
