@@ -64,7 +64,7 @@ const FamilyTreeCanvas = () => {
         fitView
         className="bg-slate-50"
       >
-        <Background color="#ccc" variant="dots" />
+        <Background color="#ccc" variant="cross" />
         <Controls />
         <MiniMap />
       </ReactFlow>
